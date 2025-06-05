@@ -8,7 +8,9 @@ const app = express();
 const PORT = 5000;
 
 app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
 
 // In-memory canvas data
 let canvasData = {
