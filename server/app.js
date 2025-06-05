@@ -37,7 +37,6 @@ app.get('/api/export', async (req, res) => {
     const canvas = createCanvas(canvasData.width, canvasData.height);
     const ctx = canvas.getContext('2d');
 
-    // White background
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -54,16 +53,31 @@ app.get('/api/export', async (req, res) => {
       } else if (el.type === 'text') {
         ctx.font = '20px Arial';
         ctx.fillText(el.text || 'Text', el.x, el.y);
-      } else if (el.type === 'image' && el.imageUrl) {
+      } else if (el.type === 'image' && el.imageBase64) {
         try {
-          // Load image from URL
-          const img = await loadImage(el.imageUrl);
+          console.log("Loading image base64 snippet:", el.imageBase64.substring(0, 40));
+          const img = await loadImage(el.imageBase64);
           ctx.drawImage(img, el.x, el.y, el.width || 100, el.height || 100);
         } catch (err) {
-          console.error('Failed to load image URL:', err.message);
+          console.error('Base64 image load failed:', err.message);
         }
       }
     }
+
+    const buffer = canvas.toBuffer('image/png');
+    const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
+    res.setHeader('Content-Disposition', 'attachment; filename="canvas.pdf"');
+    res.setHeader('Content-Type', 'application/pdf');
+
+    doc.image(buffer, 0, 0);
+    doc.pipe(res);
+    doc.end();
+  } catch (error) {
+    console.error("Export failed:", error.message);
+    res.status(500).send({ error: "Failed to export PDF" });
+  }
+});
+
 
     const buffer = canvas.toBuffer('image/png');
     const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
