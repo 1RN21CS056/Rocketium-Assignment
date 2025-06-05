@@ -8,7 +8,7 @@ const app = express();
 const PORT = 5000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
 
 // In-memory canvas data
 let canvasData = {
@@ -33,44 +33,50 @@ app.post('/api/add-shape', (req, res) => {
 
 // Export canvas to PDF
 app.get('/api/export', async (req, res) => {
-  const canvas = createCanvas(canvasData.width, canvasData.height);
-  const ctx = canvas.getContext('2d');
+  try {
+    const canvas = createCanvas(canvasData.width, canvasData.height);
+    const ctx = canvas.getContext('2d');
 
-  // white background
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // white background
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  for (const el of canvasData.shapes) {
-    ctx.fillStyle = el.color || '#000';
+    for (const el of canvasData.shapes) {
+      ctx.fillStyle = el.color || '#000';
 
-    if (el.type === 'rectangle') {
-      ctx.fillRect(el.x, el.y, el.width || 100, el.height || 100);
-    } else if (el.type === 'circle') {
-      const radius = (el.width || 100) / 2;
-      ctx.beginPath();
-      ctx.arc(el.x, el.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (el.type === 'text') {
-      ctx.font = '20px Arial';
-      ctx.fillText(el.text || 'Text', el.x, el.y);
-    } else if (el.type === 'image' && el.imageBase64) {
-      try {
-        const img = await loadImage(el.imageBase64);
-        ctx.drawImage(img, el.x, el.y, el.width || 100, el.height || 100);
-      } catch (err) {
-        console.error('Base64 image load failed:', err.message);
+      if (el.type === 'rectangle') {
+        ctx.fillRect(el.x, el.y, el.width || 100, el.height || 100);
+      } else if (el.type === 'circle') {
+        const radius = (el.width || 100) / 2;
+        ctx.beginPath();
+        ctx.arc(el.x, el.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (el.type === 'text') {
+        ctx.font = '20px Arial';
+        ctx.fillText(el.text || 'Text', el.x, el.y);
+      } else if (el.type === 'image' && el.imageBase64) {
+        try {
+          console.log("Loading image base64:", el.imageBase64.slice(0, 40));
+          const img = await loadImage(el.imageBase64);
+          ctx.drawImage(img, el.x, el.y, el.width || 100, el.height || 100);
+        } catch (err) {
+          console.error('Base64 image load failed:', err.message);
+        }
       }
     }
+
+    const buffer = canvas.toBuffer('image/png');
+    const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
+    res.setHeader('Content-Disposition', 'attachment; filename="canvas.pdf"');
+    res.setHeader('Content-Type', 'application/pdf');
+
+    doc.image(buffer, 0, 0);
+    doc.pipe(res);
+    doc.end();
+  } catch (error) {
+    console.error("Export failed:", error.message);
+    res.status(500).send({ error: "Failed to export PDF" });
   }
-
-  const buffer = canvas.toBuffer('image/png');
-  const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
-  res.setHeader('Content-Disposition', 'attachment; filename="canvas.pdf"');
-  res.setHeader('Content-Type', 'application/pdf');
-
-  doc.image(buffer, 0, 0);
-  doc.pipe(res);
-  doc.end();
 });
 
 app.listen(PORT, () => {
