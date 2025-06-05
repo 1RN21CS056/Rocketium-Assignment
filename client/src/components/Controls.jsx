@@ -16,56 +16,73 @@ const Controls = () => {
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = color;
 
-    let imageBase64 = null;
-
     if (shape === 'rectangle') {
       ctx.fillRect(x, y, width, height);
+      const shapeData = { type: shape, x, y, width, height, color, text, imageBase64: null };
+      await fetch(`${API_BASE}/api/add-shape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shapeData),
+      });
     } else if (shape === 'circle') {
       ctx.beginPath();
       ctx.arc(x, y, width / 2, 0, Math.PI * 2);
       ctx.fill();
+      const shapeData = { type: shape, x, y, width, height, color, text, imageBase64: null };
+      await fetch(`${API_BASE}/api/add-shape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shapeData),
+      });
     } else if (shape === 'text') {
       ctx.font = '20px Arial';
       ctx.fillText(text || 'Text', x, y);
+      const shapeData = { type: shape, x, y, width, height, color, text, imageBase64: null };
+      await fetch(`${API_BASE}/api/add-shape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shapeData),
+      });
     } else if (shape === 'image' && imageFile) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const imageSrc = event.target.result;
+      const img = new Image();
 
-        const img = new Image();
-        img.onload = async () => {
-          ctx.drawImage(img, x, y, width, height);
+      img.onload = async () => {
+        // Create temporary canvas to compress image
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        tempCtx.drawImage(img, 0, 0);
 
-          // Drawn to canvas, now send base64
-          const shapeData = {
-            type: shape,
-            x,
-            y,
-            width,
-            height,
-            color,
-            text,
-            imageBase64: imageSrc
-          };
+        // Compress to JPEG base64 with quality 0.8
+        const compressedBase64 = tempCanvas.toDataURL('image/jpeg', 0.8);
 
-          await fetch(`${API_BASE}/api/add-shape`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(shapeData),
-          });
+        // Draw compressed image on visible canvas
+        ctx.drawImage(img, x, y, width, height);
+
+        // Send compressed base64 image to backend
+        const shapeData = {
+          type: shape,
+          x,
+          y,
+          width,
+          height,
+          color,
+          text,
+          imageBase64: compressedBase64,
         };
-        img.src = imageSrc;
-      };
-      reader.readAsDataURL(imageFile);
-      return;
-    }
 
-    const shapeData = { type: shape, x, y, width, height, color, text, imageBase64 };
-    await fetch(`${API_BASE}/api/add-shape`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(shapeData),
-    });
+        await fetch(`${API_BASE}/api/add-shape`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(shapeData),
+        });
+      };
+
+      img.src = URL.createObjectURL(imageFile);
+
+      return; // exit function here because of async image load
+    }
   };
 
   const exportToPDF = async () => {
@@ -87,7 +104,7 @@ const Controls = () => {
     await fetch(`${API_BASE}/api/init-canvas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ width: 500, height: 500 })
+      body: JSON.stringify({ width: 500, height: 500 }),
     });
   };
 
@@ -128,9 +145,24 @@ const Controls = () => {
       <input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} />
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
-        <button onClick={draw} style={{ backgroundColor: '#4CAF50', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '5px' }}>Draw</button>
-        <button onClick={exportToPDF} style={{ backgroundColor: '#2196F3', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '5px' }}>Export PDF</button>
-        <button onClick={clearCanvas} style={{ backgroundColor: '#f44336', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '5px' }}>Clear</button>
+        <button
+          onClick={draw}
+          style={{ backgroundColor: '#4CAF50', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '5px' }}
+        >
+          Draw
+        </button>
+        <button
+          onClick={exportToPDF}
+          style={{ backgroundColor: '#2196F3', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '5px' }}
+        >
+          Export PDF
+        </button>
+        <button
+          onClick={clearCanvas}
+          style={{ backgroundColor: '#f44336', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '5px' }}
+        >
+          Clear
+        </button>
       </div>
     </div>
   );
