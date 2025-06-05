@@ -10,6 +10,7 @@ const Controls = () => {
   const [y, setY] = useState(50);
   const [width, setWidth] = useState(100);
   const [height, setHeight] = useState(100);
+  const API_BASE = "https://canvasbuilder.onrender.com";
 
   const draw = async () => {
     const canvas = document.getElementById('previewCanvas');
@@ -31,7 +32,7 @@ const Controls = () => {
       const formData = new FormData();
       formData.append('image', imageFile);
 
-      const res = await fetch('http://localhost:5000/api/upload-image', {
+      const res = await fetch(`${API_BASE}/api/upload-image`, {
         method: 'POST',
         body: formData
       });
@@ -47,7 +48,7 @@ const Controls = () => {
 
     const shapeData = { type: shape, x, y, width, height, color, text, imagePath };
 
-    await fetch('http://localhost:5000/api/add-shape', {
+    await fetch(`${API_BASE}/api/add-shape`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(shapeData),
@@ -55,7 +56,7 @@ const Controls = () => {
   };
 
   const exportToPDF = async () => {
-    const res = await fetch('http://localhost:5000/api/export');
+    const res = await fetch(`${API_BASE}/api/export`);
     const blob = await res.blob();
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -70,7 +71,7 @@ const Controls = () => {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    await fetch('http://localhost:5000/api/init-canvas', {
+    await fetch(`${API_BASE}/api/init-canvas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ width: 500, height: 500 })
