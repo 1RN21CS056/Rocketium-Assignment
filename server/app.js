@@ -7,8 +7,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json({ limit: '25mb' }));
-app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // In-memory canvas data
 let canvasData = {
@@ -53,31 +53,15 @@ app.get('/api/export', async (req, res) => {
       } else if (el.type === 'text') {
         ctx.font = '20px Arial';
         ctx.fillText(el.text || 'Text', el.x, el.y);
-      } else if (el.type === 'image' && el.imageBase64) {
+      } else if (el.type === 'image' && el.imageUrl) {
         try {
-          console.log("Loading image base64 snippet:", el.imageBase64.substring(0, 40));
-          const img = await loadImage(el.imageBase64);
+          const img = await loadImage(el.imageUrl);
           ctx.drawImage(img, el.x, el.y, el.width || 100, el.height || 100);
         } catch (err) {
-          console.error('Base64 image load failed:', err.message);
+          console.error('Image load failed:', err.message);
         }
       }
     }
-
-    const buffer = canvas.toBuffer('image/png');
-    const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
-    res.setHeader('Content-Disposition', 'attachment; filename="canvas.pdf"');
-    res.setHeader('Content-Type', 'application/pdf');
-
-    doc.image(buffer, 0, 0);
-    doc.pipe(res);
-    doc.end();
-  } catch (error) {
-    console.error("Export failed:", error.message);
-    res.status(500).send({ error: "Failed to export PDF" });
-  }
-});
-
 
     const buffer = canvas.toBuffer('image/png');
     const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
