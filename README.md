@@ -6,6 +6,10 @@ A modern, full-stack **Canvas Builder** web application that lets users draw, cu
 
 ---
 
+
+https://github.com/user-attachments/assets/e1106332-571f-4776-a5fa-8e1d12244b85
+
+
 ## ✨ Features
 
 - **Draw Shapes:** Rectangle, Circle, Text, and Image (upload & place).
