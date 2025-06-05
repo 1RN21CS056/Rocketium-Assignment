@@ -30,25 +30,37 @@ const Controls = () => {
     } else if (shape === 'image' && imageFile) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        imageBase64 = event.target.result;
+        const imageSrc = event.target.result;
 
         const img = new Image();
-        img.onload = () => ctx.drawImage(img, x, y, width, height);
-        img.src = imageBase64;
+        img.onload = async () => {
+          ctx.drawImage(img, x, y, width, height);
 
-        const shapeData = { type: shape, x, y, width, height, color, text, imageBase64 };
-        await fetch(`${API_BASE}/api/add-shape`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(shapeData),
-        });
+          // Drawn to canvas, now send base64
+          const shapeData = {
+            type: shape,
+            x,
+            y,
+            width,
+            height,
+            color,
+            text,
+            imageBase64: imageSrc
+          };
+
+          await fetch(`${API_BASE}/api/add-shape`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(shapeData),
+          });
+        };
+        img.src = imageSrc;
       };
       reader.readAsDataURL(imageFile);
       return;
     }
 
     const shapeData = { type: shape, x, y, width, height, color, text, imageBase64 };
-
     await fetch(`${API_BASE}/api/add-shape`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
