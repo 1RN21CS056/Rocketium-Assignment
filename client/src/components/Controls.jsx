@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 const Controls = () => {
@@ -17,7 +16,7 @@ const Controls = () => {
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = color;
 
-    let imagePath = null;
+    let imageBase64 = null;
 
     if (shape === 'rectangle') {
       ctx.fillRect(x, y, width, height);
@@ -29,24 +28,26 @@ const Controls = () => {
       ctx.font = '20px Arial';
       ctx.fillText(text || 'Text', x, y);
     } else if (shape === 'image' && imageFile) {
-      const formData = new FormData();
-      formData.append('image', imageFile);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        imageBase64 = event.target.result;
 
-      const res = await fetch(`${API_BASE}/api/upload-image`, {
-        method: 'POST',
-        body: formData
-      });
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, x, y, width, height);
+        img.src = imageBase64;
 
-      const data = await res.json();
-      imagePath = data.imagePath;
-
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => ctx.drawImage(img, x, y, width, height);
-      img.src = imagePath;
+        const shapeData = { type: shape, x, y, width, height, color, text, imageBase64 };
+        await fetch(`${API_BASE}/api/add-shape`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(shapeData),
+        });
+      };
+      reader.readAsDataURL(imageFile);
+      return;
     }
 
-    const shapeData = { type: shape, x, y, width, height, color, text, imagePath };
+    const shapeData = { type: shape, x, y, width, height, color, text, imageBase64 };
 
     await fetch(`${API_BASE}/api/add-shape`, {
       method: 'POST',
