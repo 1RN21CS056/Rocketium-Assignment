@@ -1,6 +1,6 @@
 # 🚀 Rocketium Assignment – Canvas Builder API with PDF Export 
 
-🔗 **Live Demo**: [https://your-vercel-app.vercel.app](https://your-vercel-app.vercel.app)
+🔗 **Live Demo**: [Click](https://canvasbuilder.vercel.app/)
 
 A modern, full-stack **Canvas Builder** web application that lets users draw, customize, and export shapes, text, and images to PDF. Built with React, Node.js, and Express, this project demonstrates strong frontend and backend skills, clean code, and thoughtful UX.
 
