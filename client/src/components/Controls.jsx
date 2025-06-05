@@ -4,7 +4,7 @@ const Controls = () => {
   const [shape, setShape] = useState('rectangle');
   const [color, setColor] = useState('#000000');
   const [text, setText] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
   const [x, setX] = useState(50);
   const [y, setY] = useState(50);
   const [width, setWidth] = useState(100);
@@ -18,7 +18,7 @@ const Controls = () => {
 
     if (shape === 'rectangle') {
       ctx.fillRect(x, y, width, height);
-      const shapeData = { type: shape, x, y, width, height, color, text, imageBase64: null };
+      const shapeData = { type: shape, x, y, width, height, color, text, imageUrl: null };
       await fetch(`${API_BASE}/api/add-shape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,7 +28,7 @@ const Controls = () => {
       ctx.beginPath();
       ctx.arc(x, y, width / 2, 0, Math.PI * 2);
       ctx.fill();
-      const shapeData = { type: shape, x, y, width, height, color, text, imageBase64: null };
+      const shapeData = { type: shape, x, y, width, height, color, text, imageUrl: null };
       await fetch(`${API_BASE}/api/add-shape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,30 +37,17 @@ const Controls = () => {
     } else if (shape === 'text') {
       ctx.font = '20px Arial';
       ctx.fillText(text || 'Text', x, y);
-      const shapeData = { type: shape, x, y, width, height, color, text, imageBase64: null };
+      const shapeData = { type: shape, x, y, width, height, color, text, imageUrl: null };
       await fetch(`${API_BASE}/api/add-shape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(shapeData),
       });
-    } else if (shape === 'image' && imageFile) {
+    } else if (shape === 'image' && imageUrl.trim() !== '') {
       const img = new Image();
-
+      img.crossOrigin = 'Anonymous';
       img.onload = async () => {
-        // Create temporary canvas to compress image
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        tempCtx.drawImage(img, 0, 0);
-
-        // Compress to JPEG base64 with quality 0.8
-        const compressedBase64 = tempCanvas.toDataURL('image/jpeg', 0.8);
-
-        // Draw compressed image on visible canvas
         ctx.drawImage(img, x, y, width, height);
-
-        // Send compressed base64 image to backend
         const shapeData = {
           type: shape,
           x,
@@ -69,19 +56,19 @@ const Controls = () => {
           height,
           color,
           text,
-          imageBase64: compressedBase64,
+          imageUrl,  // Send URL instead of base64
         };
-
         await fetch(`${API_BASE}/api/add-shape`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(shapeData),
         });
       };
-
-      img.src = URL.createObjectURL(imageFile);
-
-      return; // exit function here because of async image load
+      img.onerror = () => {
+        alert("Failed to load image from the URL provided.");
+      };
+      img.src = imageUrl;
+      return; // Wait for async image load
     }
   };
 
@@ -115,7 +102,7 @@ const Controls = () => {
         <option value="rectangle">Rectangle</option>
         <option value="circle">Circle</option>
         <option value="text">Text</option>
-        <option value="image">Image (Upload)</option>
+        <option value="image">Image (URL)</option>
       </select>
 
       {shape === 'text' && (
@@ -127,8 +114,14 @@ const Controls = () => {
 
       {shape === 'image' && (
         <>
-          <label>Choose Image</label>
-          <input type="file" onChange={(e) => setImageFile(e.target.files[0])} />
+          <label>Image URL</label>
+          <input
+            type="text"
+            placeholder="Enter image URL"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            style={{ width: '100%' }}
+          />
         </>
       )}
 
