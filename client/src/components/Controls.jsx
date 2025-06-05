@@ -9,7 +9,7 @@ const Controls = () => {
   const [y, setY] = useState(50);
   const [width, setWidth] = useState(100);
   const [height, setHeight] = useState(100);
-  const API_BASE = "https://canvasbuilder.onrender.com";
+  const API_BASE = "https://canvasbackend.vercel.app";
 
   const draw = async () => {
     const canvas = document.getElementById('previewCanvas');
