@@ -3,22 +3,12 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { createCanvas, loadImage } = require('canvas');
 const PDFDocument = require('pdfkit');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 const PORT = 5000;
 
-// Auto-create uploads folder if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-
 app.use(cors());
 app.use(bodyParser.json());
-app.use('/uploads', express.static(uploadsDir)); // serve images
 
 // In-memory canvas data
 let canvasData = {
@@ -26,13 +16,6 @@ let canvasData = {
   height: 500,
   shapes: []
 };
-
-// Setup multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-const upload = multer({ storage });
 
 // Init/reset canvas
 app.post('/api/init-canvas', (req, res) => {
@@ -43,15 +26,9 @@ app.post('/api/init-canvas', (req, res) => {
 
 // Add shape/image/text
 app.post('/api/add-shape', (req, res) => {
-  const { type, x, y, width, height, color, text, imagePath } = req.body;
-  canvasData.shapes.push({ type, x, y, width, height, color, text, imagePath });
+  const { type, x, y, width, height, color, text, imageBase64 } = req.body;
+  canvasData.shapes.push({ type, x, y, width, height, color, text, imageBase64 });
   res.send({ message: 'Element added.' });
-});
-
-//  Upload image
-app.post('/api/upload-image', upload.single('image'), (req, res) => {
-  const fileUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
-  res.json({ imagePath: fileUrl });
 });
 
 // Export canvas to PDF
@@ -76,17 +53,16 @@ app.get('/api/export', async (req, res) => {
     } else if (el.type === 'text') {
       ctx.font = '20px Arial';
       ctx.fillText(el.text || 'Text', el.x, el.y);
-    } else if (el.type === 'image' && el.imagePath) {
+    } else if (el.type === 'image' && el.imageBase64) {
       try {
-        const img = await loadImage(el.imagePath);
+        const img = await loadImage(el.imageBase64);
         ctx.drawImage(img, el.x, el.y, el.width || 100, el.height || 100);
       } catch (err) {
-        console.error('Image load failed:', err.message);
+        console.error('Base64 image load failed:', err.message);
       }
     }
   }
 
-  // create PDF from canvas
   const buffer = canvas.toBuffer('image/png');
   const doc = new PDFDocument({ size: [canvas.width, canvas.height] });
   res.setHeader('Content-Disposition', 'attachment; filename="canvas.pdf"');
@@ -100,5 +76,3 @@ app.get('/api/export', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);
 });
-
-
